@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#0d0c1d">
+    <meta name="color-scheme" content="dark">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="IoT Dados e Destino">
+    <meta name="apple-mobile-web-app-title" content="IoT Dados e Destino">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="description" content="Jogo narrativo educativo sobre privacidade, segurança digital e Internet das Coisas.">
+    <title>IoT: Entre Dados e Destino (Versão Final)</title>
+    
+    <!-- Biblioteca de ícones -->
+    <script src="https://unpkg.com/feather-icons"></script>
+    
+    <!-- Estilos CSS (style.css) -->
+    <style>
+        /* --- FONTES E ÍCONES --- */
+        @import url('https://fonts.googleapis.com/css2?family=VT323&family=Press+Start+2P&display=swap');
+
+        /* --- VARIÁVEIS DE COR E ESTILO --- */
+        :root {
+            --primary-bg: #0d0c1d;
+            --secondary-bg: #161b33;
+            --ui-bg: rgba(22, 27, 51, 0.95);
+            --border-color: #4f4f89;
+            --highlight-color: #a279f7;
+            --text-color: #d8d8e8;
+            --text-color-dark: #a0a0c0;
+            --title-font: 'Press Start 2P', cursive;
+            --body-font: 'VT323', monospace;
+            --success-color: #4dff91;
+            --danger-color: #ff4d6d;
+            --warning-color: #ffd166;
+            --disabled-color: #555;
+            --shadow-color: rgba(0, 0, 0, 0.5);
+            --glass-highlight: rgba(255, 255, 255, 0.08);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+            --safe-top: env(safe-area-inset-top, 0px);
+        }
+
+        /* --- RESET BÁSICO --- */
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        html, body { width: 100%; height: 100%; overflow: hidden; background: radial-gradient(circle at 50% 0%, #25214b 0%, var(--primary-bg) 45%, #05050b 100%); color: var(--text-color); font-family: var(--body-font); font-size: 22px; touch-action: manipulation; overscroll-behavior: none; }
+        .hidden { display: none !important; }
+
+        /* --- ESTILIZAÇÃO DA SCROLLBAR --- */
+        ::-webkit-scrollbar {
+            width: 12px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--secondary-bg);
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 10px;
+            border: 2px solid var(--secondary-bg);
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--highlight-color);
+        }
+
+        /* --- CONTAINER PRINCIPAL E TELAS --- */
+        #game-container { width: 100%; height: 100%; position: relative; }
+        .screen { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; position: absolute; top: 0; left: 0; opacity: 0; visibility: hidden; transition: opacity 0.7s ease-in-out; padding: max(20px, var(--safe-top)) 20px max(20px, var(--safe-bottom)); }
+        .screen.active { opacity: 1; visibility: visible; }
+        
+        /* --- FUNDO DE INTRODUÇÃO E CENAS --- */
+        .intro-background, #scene-background {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-size: cover;
+            background-position: center;
+            background-color: var(--primary-bg);
+            transition: opacity 1.5s ease-in-out;
+        }
+        .intro-background {
+            background: linear-gradient(175deg, var(--primary-bg) 0%, #000 100%);
+        }
+        .intro-background::after {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: url('https://www.transparenttextures.com/patterns/stardust.png');
+            animation: fadeIn 3s ease-in;
+        }
+        #scene-background.fade-out { opacity: 0; }
+
+        /* --- TELA DE INTRODUÇÃO --- */
+        #story-intro-screen .intro-text-sequence { position: relative; display: flex; justify-content: center; align-items: center; text-align: center; font-size: 1.8rem; line-height: 2; z-index: 1; width: 100%; height: 100px; }
+        #story-intro-screen .intro-text-sequence p { position: absolute; opacity: 0; visibility: hidden; transition: opacity 1.5s ease-in-out; pointer-events: none; }
+        #story-intro-screen .intro-text-sequence p.visible { opacity: 1; visibility: visible; }
+        #intro-screen .intro-content { z-index: 1; text-align: center; animation: fadeInScale 1.5s ease-out; }
+        #intro-screen .logo-container { margin-bottom: 20px; }
+        #intro-screen .title { font-family: var(--title-font); font-size: clamp(3rem, 10vw, 6rem); color: var(--highlight-color); text-shadow: 0 0 8px var(--highlight-color), 0 0 15px var(--highlight-color); letter-spacing: -20px; }
+        #intro-screen .subtitle { font-size: clamp(1rem, 4vw, 1.5rem); color: var(--text-color); letter-spacing: 2px; }
+        #intro-screen .press-key { font-size: 1.2rem; margin-top: 40px; animation: pulseGlow 2.5s infinite ease-in-out; }
+        #skip-intro-hint { position: absolute; bottom: 20px; color: var(--text-color-dark); font-size: 1rem; opacity: 0.7; z-index: 2; }
+
+        /* --- MENUS, MODAIS E CAIXAS DE INTERFACE --- */
+        .menu-box { background: linear-gradient(180deg, rgba(33, 38, 76, 0.96), rgba(14, 16, 35, 0.96)); border: 2px solid var(--border-color); border-radius: 16px; padding: clamp(22px, 4vw, 34px); width: min(92%, 560px); display: flex; flex-direction: column; gap: 16px; box-shadow: 0 18px 50px var(--shadow-color), inset 0 1px 0 var(--glass-highlight); animation: fadeInScale 0.4s ease-out; z-index: 1; backdrop-filter: blur(10px); }
+        .menu-box h2 { font-family: var(--title-font); font-size: clamp(1.2rem, 4vw, 1.6rem); color: var(--highlight-color); text-align: center; margin-bottom: 15px; word-break: break-word; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); display: flex; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(5px); opacity: 0; visibility: hidden; transition: opacity 0.3s ease; }
+        .modal-overlay:not(.hidden) { opacity: 1; visibility: visible; }
+
+        /* --- BOTÕES --- */
+        .game-button { font-family: var(--title-font); font-size: clamp(0.85rem, 2.6vw, 1.05rem); color: var(--text-color); background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01)); border: 2px solid var(--border-color); padding: 14px 22px; border-radius: 12px; cursor: pointer; transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease; text-shadow: 1px 1px 3px #000; text-align: center; user-select: none; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; }
+        .game-button:not(:disabled):hover, .game-button:focus-visible, .game-button.selected { background-color: var(--highlight-color); border-color: var(--highlight-color); color: var(--primary-bg); box-shadow: 0 0 18px rgba(162, 121, 247, 0.65); transform: translateY(-2px); outline: none; }
+        .game-button:disabled { background-color: var(--disabled-color); border-color: #333; color: #888; cursor: not-allowed; }
+        .game-button.large { padding: 15px 40px; font-size: 1.2rem; }
+        .game-button.secondary { border-color: #666; color: var(--text-color-dark); }
+        .game-button.secondary:hover { background-color: var(--border-color); color: var(--text-color); }
+        .game-button.danger { border-color: var(--danger-color); color: var(--danger-color); }
+        .game-button.danger:hover { background-color: var(--danger-color); color: var(--primary-bg); }
+        .confirm-buttons { display: flex; justify-content: center; gap: 20px; }
+
+        /* --- CRIAÇÃO DE PERSONAGEM --- */
+        #character-creation-screen .menu-box { text-align: center; }
+        #creation-form { display: flex; flex-direction: column; align-items: center; gap: 20px; width: 100%; margin-top: 20px; }
+        #creation-form input[type="text"] { font-family: var(--body-font); font-size: 1.8rem; width: 100%; max-width: 300px; padding: 10px; border: 2px solid var(--border-color); background-color: var(--primary-bg); color: var(--text-color); text-align: center; border-radius: 5px; }
+        #avatar-selection { display: flex; gap: 15px; flex-wrap: wrap; justify-content: center; }
+        .avatar-option { width: 80px; height: 80px; border: 4px solid transparent; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; background-color: var(--secondary-bg); object-fit: cover; }
+        .avatar-option.selected, .avatar-option:hover { border-color: var(--highlight-color); transform: scale(1.1); }
+
+        /* --- TELA DE JOGO E UI --- */
+        #game-screen { padding: 0; }
+        #ui-container { width: 100%; height: 100%; position: relative; z-index: 10; display: grid; grid-template-rows: auto 1fr auto; grid-template-columns: 1fr; padding: 20px; gap: 20px; pointer-events: none; }
+        #hud, #action-menu-container, #dialog-area { pointer-events: auto; }
+
+        /* --- HUD --- */
+        #hud { display: flex; justify-content: space-between; align-items: center; background: linear-gradient(180deg, rgba(22, 27, 51, 0.96), rgba(13, 12, 29, 0.92)); padding: 10px 15px; border: 2px solid var(--border-color); border-radius: 14px; font-size: 1.5rem; box-shadow: 0 8px 26px var(--shadow-color), inset 0 1px 0 var(--glass-highlight); backdrop-filter: blur(8px); }
+        #hud-player-info { display: flex; align-items: center; gap: 10px; }
+        #hud-avatar { width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--border-color); background-color: var(--primary-bg); }
+        #pause-button { background: none; border: none; padding: 5px; cursor: pointer; color: var(--text-color-dark); transition: all 0.2s ease; border-radius: 50%; }
+        #pause-button:hover { color: var(--text-color); background-color: var(--border-color); }
+
+        /* --- MENU DE AÇÕES (LATERAL) --- */
+        #action-menu-container { position: absolute; top: 50%; left: 20px; transform: translateY(-50%); display: flex; flex-direction: column; gap: 10px; }
+        .action-button { 
+            font-family: var(--body-font); font-size: 1.3rem;
+            background: linear-gradient(180deg, rgba(22, 27, 51, 0.96), rgba(13, 12, 29, 0.9)); color: var(--text-color); 
+            border: 2px solid var(--border-color); border-radius: 14px; 
+            cursor: pointer; 
+            display: flex; align-items: center; justify-content: flex-start;
+            width: 58px; min-height: 58px;
+            padding: 0 16px;
+            transition: width 0.25s ease, background-color 0.25s ease, transform 0.2s ease, border-color 0.2s ease;
+            box-shadow: 0 8px 24px var(--shadow-color), inset 0 1px 0 var(--glass-highlight);
+            touch-action: manipulation;
+        }
+        .action-button:hover, .action-button:focus-visible {
+            background-color: var(--border-color); 
+            border-color: var(--highlight-color);
+            width: auto; 
+            min-width: 58px;
+            transform: translateY(-1px);
+            outline: none;
+        }
+        .action-button span { max-width: 0; opacity: 0; transition: max-width 0.4s ease 0.1s, opacity 0.4s ease 0.1s; white-space: nowrap; overflow: hidden; margin-left: 0; }
+        .action-button i { transition: margin 0.3s ease; flex-shrink: 0; }
+        .action-button:hover span { max-width: 220px; opacity: 1; margin-left: 8px; }
+        .action-button:disabled { border-style: dashed; border-color: var(--disabled-color); color: var(--disabled-color); cursor: not-allowed; opacity: 0.6; }
+        .action-button:disabled:hover { background: var(--ui-bg); transform: none; width: 56px; }
+        .action-button:disabled:hover span { max-width: 0; opacity: 0; }
+        
+        /* --- ÁREA DE DIÁLOGO --- */
+        #dialog-area {
+            grid-row: 3; width: 100%; max-width: 1200px; margin: 0 auto;
+            display: grid; grid-template-areas: "avatar dialog choices";
+            grid-template-columns: 150px 1fr auto;
+            align-items: flex-end; gap: 20px;
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        #dialog-area.hidden-truly { opacity: 0; transform: translateY(30px); pointer-events: none; }
+        
+        /* AJUSTE: Adicionada uma "moldura" ao redor do avatar */
+        #character-avatar-container {
+            grid-area: avatar;
+            width: 150px;
+            height: 150px;
+            flex-shrink: 0;
+            background: var(--ui-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            padding: 5px;
+            box-shadow: 0 4px 20px var(--shadow-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #dialog-avatar {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            object-position: bottom;
+            transition: opacity 0.5s, transform 0.5s;
+            opacity: 0;
+            transform: scale(0.9);
+            border-radius: 6px; /* Para suavizar as bordas da imagem dentro da moldura */
+        }
+        #dialog-avatar.visible { opacity: 1; transform: scale(1); }
+        #dialog-box-container { grid-area: dialog; background: linear-gradient(180deg, rgba(22, 27, 51, 0.97), rgba(9, 10, 22, 0.95)); border: 2px solid var(--border-color); border-radius: 16px; display: flex; flex-direction: column; width: 100%; box-shadow: 0 14px 34px var(--shadow-color), inset 0 1px 0 var(--glass-highlight); backdrop-filter: blur(8px); }
+        #speaker-name-container { padding: 8px 20px; border-bottom: 2px solid var(--border-color); }
+        #speaker-name { font-size: 1.6rem; color: var(--highlight-color); }
+        #dialog-box { padding: 20px; position: relative; }
+        #dialog-text { font-size: 1.5rem; line-height: 1.4; min-height: 84px; max-height: 160px; overflow-y: auto; }
+        #skip-typing-button { position: absolute; bottom: 10px; right: 10px; background: none; border: none; color: var(--highlight-color); font-size: 2rem; cursor: pointer; padding: 5px; }
+        #skip-typing-button:hover { color: white; }
+        #choices-container { grid-area: choices; display: flex; flex-direction: column; gap: 10px; justify-content: flex-end; margin-bottom: 5px; }
+        .choice-button { font-family: var(--body-font); font-size: 1.4rem; padding: 16px 26px; background: linear-gradient(180deg, #1d2444, var(--secondary-bg)); color: var(--text-color); border: 2px solid var(--border-color); border-radius: 14px; cursor: pointer; transition: all 0.2s ease; min-width: 250px; min-height: 54px; text-align: left; box-shadow: 0 6px 16px var(--shadow-color), inset 0 1px 0 var(--glass-highlight); touch-action: manipulation; }
+        .choice-button:hover, .choice-button:focus-visible { background-color: var(--border-color); border-color: var(--highlight-color); transform: translateY(-2px); box-shadow: 0 8px 18px var(--shadow-color); outline: none; }
+
+        /* --- TELA FINAL --- */
+        #end-screen { 
+            justify-content: flex-start;
+            align-items: center; 
+            text-align: left; 
+            padding: 10vh 5vw;
+            background: radial-gradient(ellipse at center, #1b2735 0%, #090a0f 100%);
+        }
+        #end-screen-content { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 25px;
+            width: 100%; 
+            max-width: 900px; 
+            animation: fadeInScale 1s ease-out;
+            max-height: 80vh;
+            overflow-y: auto;
+            padding-right: 15px;
+        }
+        #end-title { 
+            font-family: var(--title-font); 
+            font-size: clamp(1.5rem, 4.5vw, 2.2rem); 
+            color: var(--highlight-color); 
+            line-height: 1.3; 
+            text-align: left; 
+            margin: 0;
+            word-break: break-word;
+        }
+        #end-description { font-size: clamp(1.1rem, 2.5vw, 1.4rem); line-height: 1.6; max-width: 80ch; }
+        #end-summary { background-color: transparent; border-left: 3px solid var(--border-color); padding-left: 20px; margin: 0; }
+        #end-summary p { font-size: 1.2rem; }
+        #end-achievements-list { list-style-type: '🏆 '; padding-left: 25px; font-size: 1.1rem; }
+        #end-actions { display: flex; flex-wrap: wrap; gap: 15px; margin-top: 15px; }
+
+        /* --- MENUS ESPECÍFICOS E POPUPS --- */
+        #save-slots-container, #achievements-list { display: flex; flex-direction: column; gap: 10px; max-height: 400px; overflow-y: auto; padding-right: 10px; }
+        .save-slot { border: 2px solid var(--border-color); padding: 15px; border-radius: 5px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background-color 0.2s; }
+        .save-slot:hover { background-color: var(--secondary-bg); }
+        .slot-delete { font-size: 1rem; padding: 5px 10px; background: none; border: 1px solid var(--danger-color); color: var(--danger-color); border-radius: 50%; width: 36px; height: 36px; display: flex; justify-content: center; align-items: center; cursor: pointer; line-height: 1; flex-shrink: 0; }
+        .slot-delete:hover { background-color: var(--danger-color); color: var(--primary-bg); }
+        .slot-info { display: flex; align-items: center; gap: 10px; overflow: hidden; }
+        .slot-text { display: flex; flex-direction: column; }
+        #achievement-popup { position: fixed; bottom: 20px; right: 20px; background-color: var(--ui-bg); border: 2px solid var(--success-color); border-radius: 10px; padding: 15px; display: flex; align-items: center; gap: 15px; z-index: 200; transform: translateX(120%); transition: transform 0.5s ease-in-out; }
+        #achievement-popup:not(.hidden) { transform: translateX(0); }
+        #achievement-popup-icon { font-size: 2rem; }
+        #achievement-popup-name { color: var(--success-color); }
+        .setting { display: flex; justify-content: space-between; align-items: center; font-size: 1.3rem; gap: 10px; }
+        
+
+        .slot-avatar { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border-color); background: var(--primary-bg); flex-shrink: 0; }
+        .slot-name { color: var(--text-color); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 280px; }
+        .slot-date { color: var(--text-color-dark); font-size: 1rem; }
+        .empty { color: var(--text-color-dark); }
+        .achievement-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px; border: 1px solid var(--border-color); border-radius: 12px; background: rgba(255,255,255,0.03); }
+        .achievement-item.unlocked { border-color: var(--success-color); box-shadow: inset 0 0 0 1px rgba(77, 255, 145, 0.15); }
+        .achievement-icon { width: 32px; text-align: center; flex-shrink: 0; }
+        .achievement-details p { color: var(--text-color-dark); font-size: 1.05rem; margin-top: 3px; }
+        button:focus-visible, input:focus-visible { outline: 3px solid rgba(162, 121, 247, 0.65); outline-offset: 3px; }
+        input[type="range"], input[type="checkbox"] { accent-color: var(--highlight-color); }
+        @media (pointer: coarse) and (min-width: 901px) {
+            .action-button { width: auto; min-width: 210px; justify-content: flex-start; }
+            .action-button span { max-width: 220px; opacity: 1; margin-left: 8px; }
+        }
+
+        /* --- ANIMAÇÕES --- */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes fadeInScale { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        @keyframes pulseGlow { 0%, 100% { text-shadow: 0 0 10px var(--highlight-color), 0 0 20px var(--highlight-color); } 50% { text-shadow: 0 0 20px var(--highlight-color), 0 0 40px #fff; } }
+        @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
+
+        /* --- RESPONSIVIDADE (MOBILE) --- */
+        @media (max-width: 900px) {
+            #ui-container { padding: 10px; gap: 10px; }
+            #dialog-area {
+                grid-template-areas: "dialog" "choices";
+                grid-template-columns: 1fr;
+                gap: 15px; padding: 10px;
+                background-color: var(--ui-bg); border-radius: 10px; border: 2px solid var(--border-color);
+            }
+            #character-avatar-container { display: none; }
+            #choices-container { flex-direction: column; width: 100%; margin: 0; }
+            .choice-button { width: 100%; text-align: center; }
+            #action-menu-container {
+                position: static; grid-row: 2;
+                flex-direction: row; flex-wrap: wrap;
+                justify-content: center; align-content: flex-start;
+                transform: none; gap: 8px;
+            }
+            .action-button, .action-button:disabled:hover, .action-button:hover { max-width: none; min-height: 50px; height: 50px; width: auto; min-width: 50px; }
+            .action-button span, .action-button:hover span { display: inline; max-width: 180px; opacity: 1; margin-left: 8px; font-size: 1.1rem; }
+            #dialog-text { min-height: 60px; }
+        }
+
+        @media (max-width: 560px) {
+            html, body { font-size: 20px; }
+            #hud { font-size: 1.25rem; }
+            #action-menu-container { justify-content: flex-start; overflow-x: auto; padding-bottom: 4px; }
+            .action-button span, .action-button:hover span { max-width: 120px; }
+            #dialog-area { gap: 10px; }
+            #dialog-text { font-size: 1.35rem; max-height: 140px; }
+            .choice-button { font-size: 1.25rem; padding: 14px 18px; min-width: 0; }
+            .confirm-buttons { flex-direction: column; }
+            #end-actions { flex-direction: column; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: 0.001ms !important; }
+        }
+    </style>
+</head>
+<body>
+    <noscript>
+        <div style="padding:20px; color:white; background:#0d0c1d; font-family:monospace;">
+            Este jogo precisa de JavaScript ativado para funcionar.
+        </div>
+    </noscript>
+    <div id="game-container">
+        <!-- Telas de Jogo (Intro, Menu, etc.) -->
+        <div id="story-intro-screen" class="screen active">
+            <div id="skip-intro-hint" class="hidden">Pressione ESC para pular</div>
+            <div class="intro-background"></div>
+            <div class="intro-text-sequence">
+                <p>Em um futuro próximo, a tecnologia permeia tudo.</p>
+                <p>Conveniência é a moeda mais valiosa.</p>
+                <p>Mas toda conveniência tem um custo...</p>
+            </div>
+        </div>
+
+        <div id="intro-screen" class="screen">
+            <div class="intro-background"></div>
+            <div class="intro-content">
+                <div class="logo-container">
+                    <h1 class="title">IoT</h1>
+                    <p class="subtitle">Entre Dados e Destino</p>
+                </div>
+                <button data-action="show-start-menu" class="game-button large press-key">Pressione para Iniciar</button>
+            </div>
+        </div>
+
+        <div id="start-screen" class="screen">
+             <div class="intro-background"></div>
+            <div class="menu-box">
+                <button data-action="new-game" class="game-button">Novo Jogo</button>
+                <button data-action="load-menu" class="game-button">Carregar Jogo</button>
+                <button data-action="open-settings" class="game-button">Configurações</button>
+                <button data-action="open-credits" class="game-button">Créditos</button>
+            </div>
+        </div>
+
+        <div id="character-creation-screen" class="screen">
+            <div class="menu-box">
+                <h2>Criação de Personagem</h2>
+                <div id="creation-form">
+                    <label for="player-name">Digite seu nome:</label>
+                    <input type="text" id="player-name" maxlength="12" placeholder="Seu Nome">
+                    <p>Escolha seu avatar:</p>
+                    <div id="avatar-selection">
+                        <!-- Avatares inseridos via JS -->
+                    </div>
+                    <button data-action="start-adventure" class="game-button">Iniciar Aventura</button>
+                    <button data-action="back-to-start" class="game-button secondary">Voltar</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="game-screen" class="screen">
+            <div id="scene-background"></div>
+            <div id="ui-container">
+                <div id="hud">
+                    <div id="hud-player-info">
+                        <img id="hud-avatar" src="" alt="Avatar do Jogador" onerror="this.src='https://placehold.co/40x40/0d0c1d/d8d8e8?text=X'">
+                        <span id="hud-name"></span>
+                    </div>
+                    <button id="pause-button" data-action="toggle-pause">
+                        <i data-feather="pause"></i>
+                    </button>
+                </div>
+                
+                <div id="action-menu-container">
+                    <!-- Botões de ação inseridos via JS -->
+                </div>
+
+                <div id="dialog-area" class="hidden-truly">
+                    <div id="character-avatar-container">
+                        <img id="dialog-avatar" src="" alt="Avatar do Personagem" onerror="this.style.opacity=1; this.src='https://placehold.co/150x150/0d0c1d/d8d8e8?text=X'">
+                    </div>
+                    <div id="dialog-box-container">
+                        <div id="speaker-name-container">
+                            <h3 id="speaker-name"></h3>
+                        </div>
+                        <div id="dialog-box">
+                            <p id="dialog-text"></p>
+                            <button id="skip-typing-button" class="hidden">»</button>
+                        </div>
+                    </div>
+                    <div id="choices-container">
+                        <!-- Botões de escolha inseridos via JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TELA FINAL -->
+        <div id="end-screen" class="screen">
+            <div id="end-screen-content">
+                <h2 id="end-title">Fim de Jogo</h2>
+                <p id="end-description">Seu resumo da jornada.</p>
+                <div id="end-summary">
+                    <p>Conquistas Desbloqueadas:</p>
+                    <ul id="end-achievements-list"></ul>
+                </div>
+                <div id="end-actions">
+                    <button data-action="open-achievements" class="game-button">Ver Conquistas</button>
+                    <button data-action="new-game" class="game-button">Recomeçar</button>
+                    <button data-action="back-to-menu" class="game-button secondary">Tela Inicial</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="pause-menu" class="modal-overlay hidden">
+            <div class="menu-box">
+                <h2>Pausa</h2>
+                <button data-action="resume-game" class="game-button">Continuar</button>
+                <button data-action="open-save-menu" class="game-button">Salvar Jogo</button>
+                <button data-action="open-load-menu" class="game-button">Carregar Jogo</button>
+                <button data-action="open-settings" class="game-button">Configurações</button>
+                <button data-action="restart-phase" class="game-button danger">Recomeçar Fase</button>
+                <button data-action="back-to-menu" class="game-button secondary">Sair para Tela Inicial</button>
+            </div>
+        </div>
+
+        <div id="settings-menu" class="modal-overlay hidden">
+            <div class="menu-box">
+                <h2>Configurações</h2>
+                <div class="setting"><label for="music-volume">Música:</label><input type="range" id="music-volume" min="0" max="1" step="0.1"></div>
+                <div class="setting"><label for="sfx-volume">Efeitos:</label><input type="range" id="sfx-volume" min="0" max="1" step="0.1"></div>
+                <div class="setting"><label for="typing-speed">Vel. Texto (ms):</label><input type="range" id="typing-speed" min="0" max="50" step="5"></div>
+                <div class="setting"><label for="skip-unseen-text">Pular texto já lido:</label><input type="checkbox" id="skip-unseen-text"></div>
+                <button data-action="close-settings" class="game-button">Voltar</button>
+            </div>
+        </div>
+        
+        <div id="save-load-menu" class="modal-overlay hidden">
+            <div class="menu-box">
+                <h2 id="save-load-title">Carregar Jogo</h2>
+                <div id="save-slots-container"></div>
+                <button data-action="close-save-load" class="game-button secondary">Voltar</button>
+            </div>
+        </div>
+
+        <div id="achievements-menu" class="modal-overlay hidden">
+            <div class="menu-box">
+                <h2>Conquistas</h2>
+                <div id="achievements-list"></div>
+                <button data-action="close-achievements" class="game-button secondary">Voltar</button>
+            </div>
+        </div>
+        
+        <div id="confirm-modal" class="modal-overlay hidden">
+             <div class="menu-box">
+                <h2 id="confirm-title">Confirmar</h2>
+                <p id="confirm-text">Você tem certeza?</p>
+                <div class="confirm-buttons">
+                    <button id="confirm-yes-btn" data-action="confirm-yes" class="game-button danger">Sim</button>
+                    <button id="confirm-no-btn" data-action="confirm-no" class="game-button secondary">Não</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="credits-screen" class="modal-overlay hidden">
+            <div class="menu-box">
+                <h2>Créditos</h2>
+                <div class="credits-content">
+                    <p><strong>Desenvolvimento e Roteiro:</strong></p><p>Davi Rezende</p><br>
+                    <p><strong>Motor de Jogo:</strong></p><p>PixelPulse Engine</p><br>
+                    <p><strong>Fonte:</strong> VT323 & Press Start 2P (Google Fonts)</p>
+                    <p><strong>Áudio:</strong> Tone.js</p><br>
+                    <p>Obrigado por jogar!</p>
+                </div>
+                <button data-action="close-credits" class="game-button secondary">Voltar</button>
+            </div>
+        </div>
+
+        <div id="achievement-popup" class="hidden">
+            <div id="achievement-popup-icon">🏆</div>
+            <div id="achievement-popup-text">
+                <p>Conquista Desbloqueada!</p>
+                <strong id="achievement-popup-name"></strong>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recursos PWA embutidos: manifesto, metadados dinâmicos e service worker gerado em tempo de execução -->
+    <script>
+        (() => {
+            const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+                <defs>
+                    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stop-color="#a279f7"/>
+                        <stop offset="100%" stop-color="#0d0c1d"/>
+                    </linearGradient>
+                </defs>
+                <rect width="512" height="512" rx="96" fill="#0d0c1d"/>
+                <circle cx="256" cy="256" r="172" fill="none" stroke="url(#g)" stroke-width="34"/>
+                <path d="M162 258h188M256 164v188M178 178l156 156M334 178L178 334" stroke="#d8d8e8" stroke-width="22" stroke-linecap="round"/>
+                <circle cx="256" cy="256" r="42" fill="#a279f7"/>
+            </svg>`;
+            const svgData = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svgIcon)))}`;
+            const manifest = {
+                name: "IoT: Entre Dados e Destino",
+                short_name: "IoT Destino",
+                description: "Jogo narrativo educativo sobre privacidade, segurança digital e Internet das Coisas.",
+                start_url: "./",
+                scope: "./",
+                display: "fullscreen",
+                orientation: "landscape-primary",
+                background_color: "#0d0c1d",
+                theme_color: "#0d0c1d",
+                icons: [
+                    { src: svgData, sizes: "192x192", type: "image/svg+xml", purpose: "any maskable" },
+                    { src: svgData, sizes: "512x512", type: "image/svg+xml", purpose: "any maskable" }
+                ],
+                categories: ["education", "games"],
+                lang: "pt-BR"
+            };
+
+            const manifestBlob = new Blob([JSON.stringify(manifest, null, 2)], { type: "application/manifest+json" });
+            const manifestUrl = URL.createObjectURL(manifestBlob);
+            const manifestLink = document.createElement("link");
+            manifestLink.rel = "manifest";
+            manifestLink.href = manifestUrl;
+            document.head.appendChild(manifestLink);
+
+            const iconLink = document.createElement("link");
+            iconLink.rel = "apple-touch-icon";
+            iconLink.href = svgData;
+            document.head.appendChild(iconLink);
+
+            const registerEmbeddedServiceWorker = () => {
+                if (!("serviceWorker" in navigator)) return;
+                if (!window.isSecureContext && location.hostname !== "localhost" && location.hostname !== "127.0.0.1") {
+                    console.warn("PWA: o service worker exige HTTPS ou localhost. Abra por um servidor local, não por file://.");
+                    return;
+                }
+
+                const swCode = `
+                    const CACHE_NAME = "iot-dados-destino-v17";
+                    const APP_SHELL = ["./"];
+
+                    self.addEventListener("install", event => {
+                        event.waitUntil(
+                            caches.open(CACHE_NAME)
+                                .then(cache => cache.addAll(APP_SHELL))
+                                .then(() => self.skipWaiting())
+                        );
+                    });
+
+                    self.addEventListener("activate", event => {
+                        event.waitUntil(
+                            caches.keys()
+                                .then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))))
+                                .then(() => self.clients.claim())
+                        );
+                    });
+
+                    self.addEventListener("fetch", event => {
+                        const request = event.request;
+                        if (request.method !== "GET") return;
+
+                        if (request.mode === "navigate") {
+                            event.respondWith(
+                                fetch(request)
+                                    .then(response => {
+                                        const copy = response.clone();
+                                        caches.open(CACHE_NAME).then(cache => cache.put("./", copy));
+                                        return response;
+                                    })
+                                    .catch(() => caches.match("./"))
+                            );
+                            return;
+                        }
+
+                        event.respondWith(
+                            caches.match(request).then(cached => {
+                                const fetched = fetch(request).then(response => {
+                                    if (response && (response.ok || response.type === "opaque")) {
+                                        const copy = response.clone();
+                                        caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
+                                    }
+                                    return response;
+                                }).catch(() => cached);
+                                return cached || fetched;
+                            })
+                        );
+                    });
+                `;
+
+                try {
+                    const swBlob = new Blob([swCode], { type: "text/javascript" });
+                    const swUrl = URL.createObjectURL(swBlob);
+                    navigator.serviceWorker.register(swUrl, { scope: "./" })
+                        .then(registration => console.info("PWA: service worker registrado.", registration.scope))
+                        .catch(error => console.warn("PWA: não foi possível registrar o service worker embutido. Em alguns navegadores, um sw.js separado é exigido.", error));
+                } catch (error) {
+                    console.warn("PWA: falha ao preparar service worker embutido.", error);
+                }
+            };
+
+            window.addEventListener("load", registerEmbeddedServiceWorker);
+        })();
+    </script>
+
+    <!-- Biblioteca de áudio -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+
+    <!-- Arquivo de Personagens (characters.js) -->
+    <script>
+        const characters = {
+            'narrador': { name: 'Narrador', avatar: 'https://i.ibb.co/zT41gWSC/Narrador.png' },
+            'nexus': { name: 'Nexus', description: 'A IA que gerencia a casa inteligente.', avatar: 'https://i.ibb.co/cXRY5NC8/Nexus-IA.png' },
+            'player': { name: '[PLAYER]', description: 'O protagonista da história.', avatars: [ 
+                { id: 0, name: 'Jeff', image: 'https://i.ibb.co/FqmvMW9y/Jeff-Roxo.jpg' }, 
+                { id: 1, name: 'Akira', image: 'https://i.ibb.co/WW1Kz5bt/Akira-New-Roxo.jpg' }, 
+                { id: 2, name: 'Aniki', image: 'https://i.ibb.co/nM7ZQt0N/Aniki-Roxo.jpg' }, 
+                { id: 3, name: 'Maya', image: 'https://i.ibb.co/BVPkQmNm/Maya-New-Roxo.jpg' } 
+            ] },
+            'amigo': { name: 'Amigo', description: 'Um colega de escola entusiasmado com tecnologia.', avatar: 'https://i.ibb.co/844VcRcV/Amigo-Roxo.png' },
+            'vendedor': { name: 'Vendedor', description: 'Um vendedor no shopping.', avatar: 'https://i.ibb.co/5XXjsF03/Vendedor-Roxo.png' },
+            'professor': { name: 'Professor', description: 'Anuncia as novas tecnologias na escola.', avatar: 'https://i.ibb.co/Zp35d2cD/Professor-Roxo.png' }
+        };
+    </script>
+
+    <!-- Arquivo de Narrativa (story.js) -->
+    <script>
+        const GameConfig = {
+            achievements: {
+                'privacy_advocate': { name: "Advogado da Privacidade", description: "Recusou termos de serviço invasivos." },
+                'security_first': { name: "Segurança em Primeiro Lugar", description: "Sempre escolheu a opção mais segura." },
+                'open_book': { name: "Livro Aberto", description: "Aceitou todos os termos e compartilhamentos." },
+                'skeptic': { name: "Cético Digital", description: "Questionou a coleta de dados na escola." },
+                'ghost': { name: 'Fantasma na Máquina', description: 'Terminou o jogo com máxima discrição.' },
+                'exposed': { name: 'Totalmente Exposto', description: 'Terminou o jogo como um livro aberto.' },
+                'spam_magnet': { name: 'Ímã de Spam', description: 'Atraiu atenção indesejada de spammers.' },
+                'phished': { name: 'Phishing!', description: 'Caiu em uma armadilha de e-mail falso.'},
+                'social_conflict': { name: 'Conflito Social', description: 'Suas ações digitais irritaram seus amigos.'},
+                'system_compromised': { name: 'Sistema Comprometido', description: 'Sofreu as consequências de um software desatualizado.'}
+            },
+            gamePhases: ['home', 'school', 'mall']
+        };
+
+        const storyNodes = {
+            'tutorial_start': { characterId: 'nexus', text: 'Bem-vindo, [PLAYER]. Antes de começarmos, um rápido tutorial. Eu sou Nexus, a IA que gerencia o ambiente. Minha função é observar e, às vezes, comentar.', next: 'tutorial_2' },
+            'tutorial_2': { characterId: 'nexus', text: 'No canto, você verá um menu de ações. Essas são as interações disponíveis no cenário. Clique nelas para explorar o mundo.', next: 'tutorial_3' },
+            'tutorial_3': { characterId: 'nexus', text: 'Suas escolhas terão consequências, visíveis ou não. Preste atenção em como o mundo reage a você. Vamos começar.', choices: [{ text: "Estou pronto.", node: 'home_start'}] },
+            'home_start': { characterId: 'nexus', text: 'Este é o seu quarto. Totalmente conectado, cortesia de seus pais. O que você quer fazer primeiro?', scene: { image: 'https://i.ibb.co/DPWRnBZq/Fundo-Quarto.png' }, actions: [ { label: 'Configurar Assistente', node: 'assistant_intro', icon: 'mic' }, { label: 'Ver Smart TV', node: 'tv_intro', icon: 'tv' }, { label: 'Usar Laptop', node: 'laptop_intro', icon: 'monitor' } ] },
+            'assistant_intro': { characterId: 'narrador', text: 'Você se aproxima do assistente virtual "Aura". A luz pulsa suavemente.', choices: [{ text: 'Configurar a senha de voz', node: 'assistant_password' }, { text: 'Ignorar por enquanto', node: 'close_dialog' }] },
+            'assistant_password': { characterId: 'nexus', text: 'A Aura precisa de uma senha de ativação. Uma senha complexa evita ativações acidentais. Qual você prefere?', choices: [ { text: '"Ok, Aura"', privacyEffect: -15, setFlag: 'weak_password', node: 'assistant_response_bad' }, { text: '"Aura, protocolo 7"', privacyEffect: 10, node: 'assistant_response_good' } ] },
+            'assistant_response_bad': { characterId: 'nexus', text: 'Registrado. É um comando comum, o que o torna... conveniente.', next: 'close_dialog_and_mark_assistant' },
+            'assistant_response_good': { characterId: 'nexus', text: 'Registrado. Incomum. O sistema marcou como uma senha de alta segurança.', unlocksAchievement: 'security_first', next: 'close_dialog_and_mark_assistant' },
+            'close_dialog_and_mark_assistant': { isLogicOnly: true, markActionComplete: 'assistant_intro', next: 'close_dialog' },
+            'tv_intro': { characterId: 'narrador', text: 'A enorme Smart TV está desligada. Ao ligar, um termo de serviço aparece.', choices: [ { text: 'Ler os termos', node: 'tv_terms' }, { text: 'Aceitar e continuar', privacyEffect: -20, setFlag: 'accepted_all_terms', node: 'tv_response_bad' } ] },
+            'tv_terms': { characterId: 'narrador', text: 'O texto é longo, mas você nota a cláusula: "coletaremos dados de visualização e áudio ambiente para aprimorar a experiência e para fins publicitários".', choices: [ { text: 'Aceitar mesmo assim', privacyEffect: -15, setFlag: 'accepted_all_terms', node: 'tv_response_bad' }, { text: 'Recusar coleta de dados', privacyEffect: 15, node: 'tv_response_good' } ] },
+            'tv_response_bad': { characterId: 'nexus', text: 'Permissão concedida. A interface da TV agora está cheia de "sugestões" e anúncios. Conveniente.', unlocksAchievement: 'open_book', next: 'close_dialog_and_mark_tv' },
+            'tv_response_good': { characterId: 'nexus', text: 'Você desativou a coleta de dados de áudio e publicidade. A interface parece mais limpa, mas algumas funcionalidades "inteligentes" podem ser limitadas.', unlocksAchievement: 'privacy_advocate', next: 'close_dialog_and_mark_tv' },
+            'close_dialog_and_mark_tv': { isLogicOnly: true, markActionComplete: 'tv_intro', next: 'close_dialog' },
+            'laptop_intro': { characterId: 'narrador', text: 'Seu laptop está na mesa. Uma notificação de atualização de segurança está pendente.', choices: [ { text: 'Instalar atualização agora', privacyEffect: 5, node: 'laptop_update' }, { text: 'Lembrar-me mais tarde', privacyEffect: -10, setFlag: 'postponed_update', node: 'laptop_postpone' } ]},
+            'laptop_update': { characterId: 'nexus', text: 'O sistema foi atualizado contra as últimas ameaças conhecidas. Procedimento padrão de segurança.', next: 'check_laptop_events' },
+            'laptop_postpone': { characterId: 'nexus', text: 'Adiado. Manter um sistema desatualizado é como deixar uma porta aberta.', next: 'check_laptop_events' },
+            'check_laptop_events': { isLogicOnly: true, next: { requiredFlag: 'phishing_email_received', node: 'laptop_phishing_event', elseNode: { requiredFlag: 'postponed_update', node: 'laptop_compromised', elseNode: 'close_dialog_and_mark_laptop' } } },
+            'laptop_compromised': { characterId: 'nexus', text: 'Você tenta usar o laptop, mas ele está lento. Vários pop-ups de anúncios bizarros cobrem a tela. Parece que a falta de atualização abriu uma brecha para adwares.', unlocksAchievement: 'system_compromised', next: 'close_dialog_and_mark_laptop' },
+            'laptop_phishing_event': { characterId: 'narrador', text: 'Você nota um e-mail não lido: "URGENTE: Verificação de Segurança da sua Conta Bancária". O remetente é "secure@banco-onlline.com". Parece legítimo... ou não?', choices: [ { text: 'Clicar no link para verificar', privacyEffect: -30, setFlag: 'was_phished', node: 'laptop_phished_result' }, { text: 'Ignorar e deletar o e-mail', privacyEffect: 10, node: 'laptop_phished_ignored' }, ] },
+            'laptop_phished_result': { characterId: 'narrador', text: 'Você clica. A página parece idêntica à do seu banco. Você insere suas credenciais. No dia seguinte, seu saldo bancário está zerado. Você foi vítima de phishing.', unlocksAchievement: 'phished', next: 'close_dialog_and_mark_laptop' },
+            'laptop_phished_ignored': { characterId: 'nexus', text: 'Você notou a grafia errada em "onlline". Excelente percepção. Você evitou uma armadilha comum.', next: 'close_dialog_and_mark_laptop' },
+            'close_dialog_and_mark_laptop': { isLogicOnly: true, markActionComplete: 'laptop_intro', next: 'close_dialog' },
+            'home_end': { isLogicOnly: true, nextPhase: 1 },
+            'school_start': { characterId: 'narrador', text: 'Você chega na escola. O ambiente é moderno, com displays digitais por toda parte.', scene: { image: 'https://i.ibb.co/jkRs0d3H/Fundo-Escola.png' }, actions: [ { label: 'Usar Câmera de Presença', node: 'camera_intro', icon: 'camera' }, { label: 'Falar com Amigo', node: 'friend_intro', icon: 'users' } ], },
+            'camera_intro': { characterId: 'narrador', text: 'Você vê a câmera de presença. Para marcar sua chegada, você precisa escanear seu rosto.', choices: [ { text: 'Escanear o rosto', privacyEffect: -10, node: 'camera_scan' }, { text: 'Procurar método alternativo', privacyEffect: 5, node: 'camera_alternative' } ] },
+            'camera_scan': { characterId: 'nexus', text: 'Presença registrada. Agora a escola possui seu registro biométrico. Prático.', next: 'close_dialog_and_mark_camera' },
+            'camera_alternative': { characterId: 'nexus', text: 'Você encontra um tablet e insere seu ID. Leva mais tempo, mas evita o escaneamento. O sistema registrou como uma entrada manual.', next: 'close_dialog_and_mark_camera' },
+            'close_dialog_and_mark_camera': { isLogicOnly: true, markActionComplete: 'camera_intro', next: 'close_dialog' },
+            'friend_intro': { characterId: 'amigo', text: 'Ei, [PLAYER]! Baixei um app novo, o "ConectaJá". Ele pede acesso aos contatos e localização pra achar amigos perto. Todo mundo tá usando!', choices: [ { text: 'Baixar e dar todas as permissões', privacyEffect: -20, setFlag: 'gave_contacts', node: 'friend_accept_all' }, { text: 'Baixar, mas negar permissões', privacyEffect: 10, node: 'friend_accept_partial' }, { text: 'Não, obrigado. Parece invasivo.', privacyEffect: 15, node: 'friend_refuse' } ] },
+            'friend_accept_all': { characterId: 'nexus', text: 'Você instala e aceita tudo. Seu celular vibra com dezenas de notificações. Você está conectado.', next: 'check_friend_events' },
+            'friend_accept_partial': { characterId: 'nexus', text: 'Você instala, mas nega o acesso aos contatos e localização. O app funciona, mas de forma limitada.', next: 'check_friend_events' },
+            'friend_refuse': { characterId: 'amigo', text: 'Ah, tudo bem então... Você que sabe.', unlocksAchievement: 'skeptic', next: 'check_friend_events' },
+            'check_friend_events': { isLogicOnly: true, next: { requiredFlag: 'was_phished', node: 'friend_consequence_phished', elseNode: 'close_dialog_and_mark_friend' } },
+            'friend_consequence_phished': { characterId: 'amigo', text: 'Aliás... recebi um e-mail muito estranho seu mais cedo, pedindo dinheiro emprestado. Aconteceu alguma coisa?', next: 'close_dialog_and_mark_friend' },
+            'close_dialog_and_mark_friend': { isLogicOnly: true, markActionComplete: 'friend_intro', next: 'close_dialog' },
+            'school_end': { isLogicOnly: true, nextPhase: 2 },
+            'mall_start': { characterId: 'narrador', text: 'O shopping é vibrante e cheio de anúncios. Você sente seu celular vibrar.', scene: { image: 'https://i.ibb.co/Q73Nn88y/Fundo-Shopping.png' }, actions: [ { label: 'Conectar ao Wi-Fi', node: 'wifi_intro', icon: 'wifi' }, { label: 'Comprar um lanche', node: 'payment_intro', icon: 'shopping-cart' } ], next: 'check_mall_events_1' },
+            'check_mall_events_1': { isLogicOnly: true, next: { requiredFlag: 'accepted_all_terms', node: 'mall_consequence_1', elseNode: 'check_mall_events_2' } },
+            'mall_consequence_1': { characterId: 'narrador', text: 'Uma tela de anúncio gigante à sua frente pisca e exibe o trailer daquela série que você estava assistindo ontem à noite. Ela parece te seguir com os olhos.', next: 'check_mall_events_2' },
+            'check_mall_events_2': { isLogicOnly: true, next: { requiredFlag: 'gave_contacts', node: 'mall_consequence_2', elseNode: 'close_dialog' } },
+            'mall_consequence_2': { characterId: 'amigo', text: 'Seu celular toca. É seu amigo. "Cara, que história é essa de me adicionar num grupo de \'Renda Extra Fácil\'? Para com isso, todo mundo tá me zoando!" Ele desliga.', unlocksAchievement: 'social_conflict', next: 'close_dialog' },
+            'wifi_intro': { characterId: 'narrador', text: 'Você vê um aviso para Wi-Fi grátis. Para conectar, você precisa fornecer seu e-mail e número de telefone.', choices: [ { text: 'Conectar e fornecer os dados', privacyEffect: -15, node: 'wifi_connect' }, { text: 'Ficar sem Wi-Fi', privacyEffect: 5, node: 'wifi_ignore' } ] },
+            'wifi_connect': { characterId: 'nexus', text: 'Conexão estabelecida. Seus dados foram trocados por acesso.', setFlag: 'phishing_email_received', next: 'wifi_spam' },
+            'wifi_spam': { characterId: 'narrador', text: 'Minutos depois, seu celular vibra com um email: "Oportunidade ÚNICA! Invista em Cripto-Moedas AGORA!"', unlocksAchievement: 'spam_magnet', next: 'close_dialog_and_mark_wifi'},
+            'wifi_ignore': { characterId: 'nexus', text: 'Você decide que não precisa de Wi-Fi agora. Redes públicas abertas são um risco.', next: 'close_dialog_and_mark_wifi' },
+            'close_dialog_and_mark_wifi': { isLogicOnly: true, markActionComplete: 'wifi_intro', next: 'close_dialog' },
+            'payment_intro': { characterId: 'vendedor', text: 'Olá! Para um lanche? Temos uma promoção: 10% de desconto se você se cadastrar no nosso programa de fidelidade. Só precisamos da sua impressão digital.', choices: [ { text: 'Cadastrar com a digital', privacyEffect: -15, node: 'payment_fingerprint' }, { text: 'Pagar o preço normal', privacyEffect: 10, node: 'payment_normal' } ]},
+            'payment_fingerprint': { characterId: 'nexus', text: 'Pagamento efetuado com desconto. Sua biometria agora está associada ao seu histórico de compras nesta loja.', next: 'check_payment_events' },
+            'payment_normal': { characterId: 'nexus', text: 'Pagamento efetuado. Uma transação anônima e simples.', next: 'check_payment_events' },
+            'check_payment_events': { isLogicOnly: true, next: { requiredFlag: 'was_phished', node: 'payment_blocked', elseNode: 'close_dialog_and_mark_payment' } },
+            'payment_blocked': { characterId: 'vendedor', text: 'Hmm, que estranho. Seu pagamento foi recusado. O sistema diz "Atividade Suspeita na Conta". Desculpe, não posso te vender nada.', next: 'close_dialog_and_mark_payment' },
+            'close_dialog_and_mark_payment': { isLogicOnly: true, markActionComplete: 'payment_intro', next: 'close_dialog' },
+            'mall_end': { characterId: 'nexus', text: 'Sua jornada por hoje termina aqui. Vamos ver o resultado de suas decisões.', choices: [{ text: "Ver meu destino", node: 'final_evaluation'}] },
+            'final_evaluation': { isLogicOnly: true },
+            'end_good': { characterId: 'nexus', text: 'Você navegou pelo mundo digital com maestria, deixando poucos rastros. Suas escolhas demonstram uma compreensão profunda dos riscos. Você está no controle da sua identidade digital.', unlocksAchievement: 'ghost', isEnd: true },
+            'end_neutral': { characterId: 'nexus', text: 'Você tentou equilibrar conveniência e privacidade. Algumas de suas informações foram expostas, mas você evitou os piores cenários. É um começo sólido.', isEnd: true },
+            'end_bad': { characterId: 'nexus', text: 'Em busca de conveniência, você abriu mão de sua privacidade. Seus dados estão espalhados, sendo usados por corporações para te influenciar e rastrear. Sua vida digital é um livro aberto.', unlocksAchievement: 'exposed', isEnd: true },
+            'close_dialog': { isLogicOnly: true, next: null }
+        };
+    </script>
+    
+    <!-- Arquivo Principal (script.js) -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            const GameState = {
+                state: {},
+                defaultState: { gameInitialized: false, isIntroRunning: false, playerName: 'Ren', avatarId: 0, privacyScore: 100, currentPhase: 0, currentNodeKey: 'tutorial_start', completedNodes: {}, completedActions: {}, unlockedAchievements: {}, flags: {}, appliedEffects: {}, settings: { musicVolume: 0.5, sfxVolume: 0.8, typingSpeed: 25, skipUnseenText: false } },
+                init() { this.state = JSON.parse(JSON.stringify(this.defaultState)); this.loadSettings(); },
+                reset() { const settings = this.state.settings; this.init(); this.state.settings = settings; this.state.gameInitialized = false; },
+                load(savedState) { 
+                    const settings = this.state.settings; 
+                    const cleanState = savedState && typeof savedState === 'object' ? savedState : {};
+                    this.state = { ...JSON.parse(JSON.stringify(this.defaultState)), ...cleanState };
+                    this.state.settings = { ...this.defaultState.settings, ...settings };
+                    this.state.gameInitialized = true; 
+                    if (!this.state.completedNodes) this.state.completedNodes = {};
+                    if (!this.state.completedActions) this.state.completedActions = {};
+                    if (!this.state.unlockedAchievements) this.state.unlockedAchievements = {};
+                    if (!this.state.flags) this.state.flags = {};
+                    if (!this.state.appliedEffects) this.state.appliedEffects = {};
+                },
+                updateScore(amount) { this.state.privacyScore = Math.max(0, Math.min(100, this.state.privacyScore + amount)); },
+                markActionCompleted(actionNodeKey) { this.state.completedActions[actionNodeKey] = true; },
+                isActionCompleted(actionNodeKey) { return this.state.completedActions[actionNodeKey] === true; },
+                setFlag(flag) { this.state.flags[flag] = true; },
+                hasFlag(flag) { return this.state.flags[flag] === true; },
+                saveSettings() { try { localStorage.setItem('iotGameSettings', JSON.stringify(this.state.settings)); } catch(e){ console.warn("Could not save settings.")}},
+                loadSettings() { try { const savedSettings = localStorage.getItem('iotGameSettings'); if (savedSettings) this.state.settings = { ...this.state.settings, ...JSON.parse(savedSettings) }; } catch(e){console.warn("Could not load settings.")} }
+            };
+
+            const AudioManager = {
+                isStarted: false, musicVolume: null, sfxVolume: null, synths: {}, musicLoop: null, noteIndex: 0,
+                init() { 
+                    if(typeof Tone === 'undefined') { 
+                        console.warn('Tone.js não carregou; o jogo continuará sem áudio.');
+                        return; 
+                    } 
+                    try {
+                        this.musicVolume = new Tone.Volume().toDestination(); 
+                        this.sfxVolume = new Tone.Volume().toDestination(); 
+                        this.synths = { click: new Tone.Synth({ oscillator: { type: 'sine' }, envelope: { attack: 0.01, decay: 0.1, sustain: 0.1, release: 0.1 } }).connect(this.sfxVolume), choice: new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.01, decay: 0.2, sustain: 0.2, release: 0.2 } }).connect(this.sfxVolume), success: new Tone.Synth({ oscillator: { type: 'sine' }, envelope: { attack: 0.01, decay: 0.4, sustain: 0.1, release: 0.4 } }).connect(this.sfxVolume), fail: new Tone.Synth({ oscillator: { type: 'square' }, envelope: { attack: 0.01, decay: 0.3, sustain: 0.1, release: 0.3 } }).connect(this.sfxVolume), achievement: new Tone.PolySynth(Tone.Synth, { "volume": -8, "envelope": { "attack": 0.01, "decay": 1.5, "sustain": 0.2, "release": 1.5 }, "oscillator": { "type": "fatsawtooth", "count": 3, "spread": 30 } }).connect(this.sfxVolume) }; 
+                        this.updateVolume(); 
+                    } catch (error) {
+                        console.warn('Falha ao inicializar áudio; seguindo sem som.', error);
+                    }
+                },
+                startContext() { if (!this.isStarted && typeof Tone !== 'undefined') Tone.start().then(() => { this.isStarted = true; this.startMusic(); }).catch(error => console.warn('Não foi possível iniciar áudio.', error)); },
+                play(sound, note = 'C5', duration = '16n') { if (!this.isStarted || !this.synths[sound]) return; if (sound === 'achievement') this.synths.achievement.triggerAttackRelease(["C4", "E4", "G4", "C5"], "1s"); else this.synths[sound].triggerAttackRelease(note, duration); },
+                startMusic() { if (this.musicLoop || !this.isStarted || typeof Tone === 'undefined' || !this.musicVolume) return; try { const musicSynth = new Tone.PolySynth(Tone.Synth, { oscillator: { type: "amsine" }, envelope: { attack: 0.1, decay: 0.2, sustain: 0.5, release: 1 } }).connect(this.musicVolume); const notes = ["C3", "G3", "Eb4", "Bb3"]; this.musicLoop = new Tone.Loop(time => { musicSynth.triggerAttackRelease(notes[this.noteIndex % notes.length], "8n", time); this.noteIndex++; }, "2n").start(0); if (Tone.Transport.state !== 'started') Tone.Transport.start(); } catch(error) { console.warn('Música indisponível.', error); } },
+                updateVolume() { if (typeof Tone === 'undefined') return; if (this.musicVolume) this.musicVolume.volume.value = Tone.gainToDb(Math.max(0.0001, GameState.state.settings.musicVolume)); if (this.sfxVolume) this.sfxVolume.volume.value = Tone.gainToDb(Math.max(0.0001, GameState.state.settings.sfxVolume)); }
+            };
+
+            const UI = {
+                elements: {},
+                typingInterval: null,
+                isTyping: false,
+                introTimeout: null,
+
+                cacheElements() {
+                    const ids = ['story-intro-screen', 'intro-screen', 'start-screen', 'character-creation-screen', 'game-screen', 'end-screen', 'pause-menu', 'settings-menu', 'save-load-menu', 'achievements-menu', 'credits-screen', 'confirm-modal', 'player-name', 'avatar-selection', 'scene-background', 'hud-avatar', 'hud-name', 'action-menu-container', 'dialog-area', 'dialog-avatar', 'dialog-box-container', 'speaker-name', 'dialog-text', 'skip-typing-button', 'choices-container', 'music-volume', 'sfx-volume', 'typing-speed', 'skip-unseen-text', 'save-load-title', 'save-slots-container', 'achievements-list', 'achievement-popup', 'achievement-popup-name', 'end-title', 'end-description', 'end-achievements-list', 'confirm-title', 'confirm-text', 'confirm-yes-btn', 'skip-intro-hint'];
+                    ids.forEach(id => this.elements[id.replace(/-(\w)/g, (m, g) => g.toUpperCase())] = document.getElementById(id));
+                    this.elements.screens = document.querySelectorAll('.screen');
+                    this.elements.modals = document.querySelectorAll('.modal-overlay');
+                },
+
+                showScreen(screenId) { this.elements.screens.forEach(s => s.classList.remove('active')); const screen = document.getElementById(screenId); if (screen) screen.classList.add('active'); },
+                showModal(modalId) { const modal = document.getElementById(modalId); if (modal) modal.classList.remove('hidden'); },
+                hideAllModals() { this.elements.modals.forEach(m => m.classList.add('hidden')); },
+                loadImage(url, element, fallbackUrl, onComplete = null) { 
+                    if (!url || !element) return;
+                    const img = new Image(); 
+                    img.onload = () => { 
+                        if (element.tagName === 'IMG') { element.src = url; } 
+                        else { element.style.backgroundImage = `url("${url}")`; } 
+                        if (onComplete) onComplete(true);
+                    }; 
+                    img.onerror = () => { 
+                        console.warn(`Falha ao carregar imagem: ${url}. Usando fallback.`); 
+                        if (element.tagName === 'IMG') { element.src = fallbackUrl; } 
+                        else { element.style.backgroundImage = fallbackUrl && fallbackUrl.startsWith('http') ? `url("${fallbackUrl}")` : fallbackUrl; } 
+                        if (onComplete) onComplete(false);
+                    }; 
+                    img.src = url; 
+                },
+
+                renderScene(node) {
+                    if (node && node.scene && node.scene.image) {
+                        const newBg = node.scene.image;
+                        if (this.elements.sceneBackground.style.backgroundImage !== `url("${newBg}")`) {
+                            this.elements.sceneBackground.classList.add('fade-out');
+                            setTimeout(() => { this.loadImage(newBg, this.elements.sceneBackground, 'var(--primary-bg)'); this.elements.sceneBackground.classList.remove('fade-out'); }, 1000);
+                        }
+                    }
+                    this.elements.actionMenuContainer.innerHTML = '';
+                    if (node && node.actions) {
+                        node.actions.forEach(action => {
+                            if (!action.node) { console.error(`Ação "${action.label}" não tem um 'node' de destino.`); return; }
+                            const isCompleted = GameState.isActionCompleted(action.node);
+                            const button = document.createElement('button');
+                            button.className = 'action-button';
+                            button.disabled = isCompleted;
+                            button.dataset.action = 'process-node';
+                            button.dataset.node = action.node;
+                            button.innerHTML = `<i data-feather="${action.icon || 'chevrons-right'}"></i><span>${action.label}</span>`;
+                            this.elements.actionMenuContainer.appendChild(button);
+                        });
+                        if (typeof feather !== 'undefined') feather.replace();
+                    }
+                },
+
+                showDialog(node) {
+                    this.elements.dialogArea.classList.remove('hidden-truly');
+                    const character = characters[node.characterId] || characters['narrador'];
+                    this.elements.speakerName.textContent = character.name.replace('[PLAYER]', GameState.state.playerName);
+                    const selectedAvatar = characters.player.avatars.find(a => a.id === GameState.state.avatarId) || characters.player.avatars[0];
+                    const avatarUrl = node.characterId === 'player' ? selectedAvatar.image : character.avatar;
+                    const avatarElement = this.elements.dialogAvatar;
+                    avatarElement.classList.remove('visible');
+                    setTimeout(() => {
+                        const fallback = 'https://placehold.co/150x150/0d0c1d/d8d8e8?text=X';
+                        this.loadImage(avatarUrl, avatarElement, fallback, () => avatarElement.classList.add('visible'));
+                    }, 250);
+                    const text = (node.text || '').replace(/\[PLAYER\]/g, GameState.state.playerName);
+                    this.typewriter(text, node);
+                },
+
+                onTypingFinished(node) {
+                    this.renderChoices(node);
+                    if (node.choices && node.choices.length > 0) { return; }
+                    this.elements.skipTypingButton.innerHTML = '❯';
+                    this.elements.skipTypingButton.classList.remove('hidden');
+                    const advance = (e) => {
+                        if(e) e.stopPropagation();
+                        this.elements.skipTypingButton.onclick = null;
+                        this.elements.dialogBoxContainer.onclick = null;
+                        this.elements.dialogBoxContainer.style.cursor = 'default';
+                        this.elements.skipTypingButton.classList.add('hidden');
+                        GameLogic.processNextNode(node.next);
+                    };
+                    this.elements.skipTypingButton.onclick = advance;
+                    this.elements.dialogBoxContainer.style.cursor = 'pointer';
+                    this.elements.dialogBoxContainer.onclick = advance;
+                },
+
+                typewriter(text, node) {
+                    if (this.typingInterval) clearInterval(this.typingInterval);
+                    this.isTyping = true;
+                    this.elements.dialogText.textContent = '';
+                    this.elements.skipTypingButton.innerHTML = '»';
+                    this.elements.skipTypingButton.classList.remove('hidden');
+                    const onFinish = () => {
+                        if (!this.isTyping) return;
+                        clearInterval(this.typingInterval);
+                        this.typingInterval = null;
+                        this.isTyping = false;
+                        this.elements.dialogText.textContent = text;
+                        this.elements.skipTypingButton.classList.add('hidden');
+                        this.onTypingFinished(node);
+                    };
+                    this.elements.skipTypingButton.onclick = (e) => { e.stopPropagation(); onFinish(); };
+                    const speed = GameState.state.settings.typingSpeed;
+                    if (speed <= 0 || (GameState.state.settings.skipUnseenText && node.wasReadBefore)) { onFinish(); return; }
+                    let charIndex = 0;
+                    this.typingInterval = setInterval(() => { if (charIndex < text.length) { this.elements.dialogText.textContent += text.charAt(charIndex++); } else { onFinish(); } }, speed);
+                },
+
+                hideDialog() { 
+                    this.elements.dialogArea.classList.add('hidden-truly'); 
+                    this.elements.choicesContainer.innerHTML = '';
+                    this.elements.dialogBoxContainer.style.cursor = 'default';
+                    this.elements.dialogBoxContainer.onclick = null;
+                },
+                
+                renderChoices(node) {
+                    this.elements.choicesContainer.innerHTML = '';
+                    if (!node.choices) return;
+                    node.choices.forEach(choice => {
+                        if (choice.requiredFlag && !GameState.hasFlag(choice.requiredFlag)) return;
+                        const button = document.createElement('button');
+                        button.className = 'choice-button';
+                        button.textContent = choice.text;
+                        button.dataset.action = 'handle-choice';
+                        if (!choice.node) { console.error(`Escolha "${choice.text}" não tem um 'node' de destino.`); button.disabled = true; }
+                        button.dataset.choice = JSON.stringify(choice);
+                        this.elements.choicesContainer.appendChild(button);
+                    });
+                },
+                populateAvatars() { 
+                    this.elements.avatarSelection.innerHTML = ''; 
+                    const selectedAvatar = characters.player.avatars.find(a => a.id === GameState.state.avatarId) || characters.player.avatars[0];
+                    this.elements.playerName.value = '';
+                    this.elements.playerName.placeholder = selectedAvatar.name;
+                    characters.player.avatars.forEach(avatar => { 
+                        const img = document.createElement('img'); 
+                        img.src = avatar.image; 
+                        img.alt = `Avatar ${avatar.name}`;
+                        img.title = avatar.name;
+                        img.loading = 'lazy';
+                        img.className = `avatar-option ${avatar.id === GameState.state.avatarId ? 'selected' : ''}`; 
+                        img.dataset.avatarId = avatar.id; 
+                        this.elements.avatarSelection.appendChild(img); 
+                    }); 
+                },
+                updateHUD() { const avatar = characters.player.avatars.find(a => a.id === GameState.state.avatarId) || characters.player.avatars[0]; this.elements.hudAvatar.src = avatar.image; this.elements.hudName.textContent = GameState.state.playerName; },
+                showInputError(element) { element.style.borderColor = 'var(--danger-color)'; element.style.animation = 'shake 0.5s'; element.focus(); setTimeout(() => { element.style.borderColor = ''; element.style.animation = ''; }, 1000); },
+                showConfirmDialog(title, text, onConfirmCallback) { this.elements.confirmTitle.textContent = title; this.elements.confirmText.textContent = text; this.elements.confirmYesBtn.callback = onConfirmCallback; this.showModal('confirm-modal'); },
+                updateSettingsUI() { const s = GameState.state.settings; this.elements.musicVolume.value = s.musicVolume; this.elements.sfxVolume.value = s.sfxVolume; this.elements.typingSpeed.value = s.typingSpeed; this.elements.skipUnseenText.checked = s.skipUnseenText; AudioManager.updateVolume(); },
+                showAchievementPopup(id) { const ach = GameConfig.achievements[id]; if (!ach) return; this.elements.achievementPopupName.textContent = ach.name; this.elements.achievementPopup.classList.remove('hidden'); AudioManager.play('achievement'); setTimeout(() => this.elements.achievementPopup.classList.add('hidden'), 4000); },
+                populateAchievementsMenu() { this.elements.achievementsList.innerHTML = ''; for (const id in GameConfig.achievements) { const ach = GameConfig.achievements[id], isUnlocked = GameState.state.unlockedAchievements[id]; const item = document.createElement('div'); item.className = `achievement-item ${isUnlocked ? 'unlocked' : ''}`; item.innerHTML = `<div class="achievement-icon">${isUnlocked ? '🏆' : '?'}</div><div class="achievement-details"><strong>${isUnlocked ? ach.name : '??????'}</strong><p>${isUnlocked ? ach.description : 'Continue jogando para desbloquear.'}</p></div>`; this.elements.achievementsList.appendChild(item); } }
+            };
+
+            const GameLogic = {
+                init() { GameState.init(); AudioManager.init(); UI.cacheElements(); this.setupEventListeners(); this.runIntroSequence();},
+                
+                runIntroSequence() {
+                    GameState.state.isIntroRunning = true;
+                    UI.elements.skipIntroHint.classList.remove('hidden');
+                    const lines = document.querySelectorAll('#story-intro-screen .intro-text-sequence p');
+                    let currentLine = 0;
+                    
+                    const showNextLine = () => {
+                        if (!GameState.state.isIntroRunning) return;
+                        if (currentLine < lines.length) {
+                            if (currentLine > 0) { lines[currentLine-1].classList.remove('visible'); }
+                            lines[currentLine].classList.add('visible');
+                            currentLine++;
+                            UI.introTimeout = setTimeout(showNextLine, 2500);
+                        } else { this.skipIntro(); }
+                    };
+                    // Começa a sequência
+                    UI.introTimeout = setTimeout(showNextLine, 500);
+                },
+
+                skipIntro() {
+                    if (!GameState.state.isIntroRunning) return;
+                    GameState.state.isIntroRunning = false;
+                    clearTimeout(UI.introTimeout);
+                    UI.elements.skipIntroHint.classList.add('hidden');
+                    UI.showScreen('intro-screen');
+                },
+
+                showStartMenu() { UI.showScreen('start-screen'); },
+                newGame() { GameState.reset(); UI.showScreen('character-creation-screen'); UI.populateAvatars(); },
+                startGame() { 
+                    const name = UI.elements.playerName.value.trim();
+                    if (name) {
+                        GameState.state.playerName = name;
+                    } else {
+                        // Se o nome estiver vazio, usa o nome do avatar selecionado
+                        const selectedAvatar = characters.player.avatars.find(a => a.id === GameState.state.avatarId) || characters.player.avatars[0];
+                        GameState.state.playerName = selectedAvatar.name;
+                    }
+                    GameState.state.gameInitialized = true; 
+                    UI.updateHUD(); 
+                    this.processNode('tutorial_start'); 
+                    UI.showScreen('game-screen'); 
+                },
+                continueGame() {GameState.state.gameInitialized = true; UI.updateHUD(); UI.showScreen('game-screen'); this.processNode(GameState.state.currentNodeKey);},
+                loadPhase(phaseIndex) { GameState.state.currentPhase = phaseIndex; const key = `${GameConfig.gamePhases[phaseIndex]}_start`; if (storyNodes[key]) { GameState.state.currentNodeKey = key; this.processNode(key); } else {this.endGame(); }},
+                
+                processNode(nodeKey) {
+                    if (UI.isTyping) { return; }
+                    const node = storyNodes[nodeKey];
+                    if (!node) { console.error(`Erro Crítico: Nó da história não encontrado: "${nodeKey}".`); UI.hideDialog(); return; }
+                    const wasReadBefore = GameState.state.completedNodes[nodeKey] === true;
+                    GameState.state.currentNodeKey = nodeKey;
+                    if (node.isLogicOnly) { this.executeLogicNode(node, nodeKey); return; }
+                    node.wasReadBefore = wasReadBefore;
+                    this.applyNodeEffects(node, nodeKey);
+                    GameState.state.completedNodes[nodeKey] = true;
+                    UI.renderScene(node);
+                    UI.showDialog(node);
+                    SaveLoad.autoSave();
+                },
+
+                applyNodeEffects(node, nodeKey) {
+                    if (!GameState.state.appliedEffects) GameState.state.appliedEffects = {};
+                    if (node.markActionComplete) GameState.markActionCompleted(node.markActionComplete);
+                    if (GameState.state.appliedEffects[nodeKey]) return;
+                    if (node.unlocksAchievement) this.unlockAchievement(node.unlocksAchievement);
+                    if (node.setFlag) GameState.setFlag(node.setFlag);
+                    if (node.privacyEffect) GameState.updateScore(node.privacyEffect);
+                    GameState.state.appliedEffects[nodeKey] = true;
+                },
+
+                executeLogicNode(node, nodeKey) {
+                    GameState.state.completedNodes[nodeKey] = true;
+                    this.applyNodeEffects(node, nodeKey);
+                    if (nodeKey === 'close_dialog') {
+                        UI.hideDialog();
+                        const advanced = this.checkPhaseCompletion();
+                        if (advanced) return;
+                        const phaseKey = GameConfig.gamePhases[GameState.state.currentPhase];
+                        const startNode = storyNodes[`${phaseKey}_start`];
+                        UI.renderScene(startNode);
+                        SaveLoad.autoSave();
+                        return;
+                    }
+                    if (nodeKey === 'final_evaluation') { this.evaluateEnding(); return; }
+                    if(node.nextPhase !== undefined) { this.loadPhase(node.nextPhase); return; }
+                    if (node.next) { this.processNextNode(node.next); }
+                    SaveLoad.autoSave();
+                },
+
+                processNextNode(nextNodeData) {
+                    if (!nextNodeData) { this.processNode('close_dialog'); return; }
+                    let nextNodeKey = null;
+                    if (typeof nextNodeData === 'string') { nextNodeKey = nextNodeData; } 
+                    else if (typeof nextNodeData === 'object') {
+                        if (nextNodeData.requiredFlag) {
+                            if (GameState.hasFlag(nextNodeData.requiredFlag)) { this.processNextNode(nextNodeData.node); return; }
+                            if (nextNodeData.elseNode) { this.processNextNode(nextNodeData.elseNode); return; }
+                            this.processNode('close_dialog');
+                            return;
+                        }
+                        nextNodeKey = nextNodeData.node;
+                    }
+                    if (nextNodeKey) { setTimeout(() => this.processNode(nextNodeKey), 50); } 
+                    else { this.processNode('close_dialog'); }
+                },
+
+                handleChoice(choice) {
+                    UI.hideDialog();
+                    setTimeout(() => {
+                        if (choice.privacyEffect) GameState.updateScore(choice.privacyEffect);
+                        if (choice.setFlag) GameState.setFlag(choice.setFlag);
+                        if (choice.unlocksAchievement) this.unlockAchievement(choice.unlocksAchievement);
+                        SaveLoad.autoSave();
+                        if (choice.node) { this.processNode(choice.node); } 
+                        else { this.processNode('close_dialog'); }
+                    }, 350);
+                },
+
+                checkPhaseCompletion() {
+                    const phaseKey = GameConfig.gamePhases[GameState.state.currentPhase];
+                    const startNode = storyNodes[`${phaseKey}_start`];
+                    if (!startNode || !startNode.actions) return false;
+                    const allActionsDone = startNode.actions.every(act => GameState.isActionCompleted(act.node));
+                    const endNodeKey = `${phaseKey}_end`;
+                    if (allActionsDone && storyNodes[endNodeKey] && !GameState.state.completedNodes[endNodeKey]) { this.processNode(endNodeKey); return true; }
+                    return false;
+                },
+                unlockAchievement(id) { if (!GameState.state.unlockedAchievements[id]) { GameState.state.unlockedAchievements[id] = true; UI.showAchievementPopup(id); } },
+                
+                evaluateEnding() {
+                    const score = GameState.state.privacyScore; 
+                    let finalKey = 'end_neutral'; 
+                    if (score >= 85) finalKey = 'end_good'; 
+                    if (score <= 35) finalKey = 'end_bad'; 
+                    const node = storyNodes[finalKey]; 
+                    if (node.unlocksAchievement) this.unlockAchievement(node.unlocksAchievement); 
+                    UI.elements.endTitle.textContent = node.text.split('.')[0]; 
+                    UI.elements.endDescription.textContent = node.text; 
+                    UI.elements.endAchievementsList.innerHTML = ''; 
+                    const unlocked = Object.keys(GameState.state.unlockedAchievements);
+                    if (unlocked.length > 0) {
+                        unlocked.forEach(id => {
+                            const li = document.createElement('li');
+                            li.textContent = GameConfig.achievements[id].name;
+                            UI.elements.endAchievementsList.appendChild(li);
+                        });
+                    } else {
+                        const li = document.createElement('li');
+                        li.textContent = "Nenhuma conquista desbloqueada nesta jornada.";
+                        li.style.listStyleType = 'none';
+                        UI.elements.endAchievementsList.appendChild(li);
+                    }
+                    UI.showScreen('end-screen');
+                },
+                
+                endGame() { this.evaluateEnding(); },
+                togglePause() { const isPaused = !UI.elements.pauseMenu.classList.contains('hidden'); if (isPaused) { UI.hideAllModals(); if (typeof Tone !== 'undefined' && Tone.Transport && Tone.Transport.state !== 'started') Tone.Transport.start(); } else { UI.showModal('pause-menu'); if (typeof Tone !== 'undefined' && Tone.Transport) Tone.Transport.pause(); } },
+                
+                restartPhase() {
+                    UI.hideAllModals();
+                    const phaseKey = GameConfig.gamePhases[GameState.state.currentPhase];
+                    const startNode = storyNodes[`${phaseKey}_start`];
+                    if (startNode && startNode.actions) {
+                        startNode.actions.forEach(action => {
+                            if (GameState.state.completedActions[action.node]) { delete GameState.state.completedActions[action.node]; }
+                        });
+                    }
+                    this.processNode(`${phaseKey}_start`);
+                },
+                
+                setupEventListeners() {
+                    document.addEventListener('keydown', e => { 
+                        if (e.key === 'Escape') {
+                            if (GameState.state.isIntroRunning) { this.skipIntro(); } 
+                            else if (GameState.state.gameInitialized && UI.elements.gameScreen.classList.contains('active')) { this.togglePause(); }
+                        }
+                    });
+                    document.body.addEventListener('click', e => {AudioManager.startContext(); const target = e.target.closest('[data-action]'); if (!target) return; e.stopPropagation(); AudioManager.play('click'); const action = target.dataset.action; this.handleAction(action, target);});
+                    UI.elements.avatarSelection.addEventListener('click', e => {
+                        const id = e.target.closest('.avatar-option')?.dataset.avatarId; 
+                        if (id !== undefined) { 
+                            UI.elements.avatarSelection.querySelectorAll('.avatar-option').forEach(el => el.classList.remove('selected')); 
+                            e.target.classList.add('selected'); 
+                            GameState.state.avatarId = parseInt(id); 
+                            const selectedAvatar = characters.player.avatars.find(a => a.id === GameState.state.avatarId);
+                            UI.elements.playerName.placeholder = selectedAvatar.name;
+                            AudioManager.play('click', 'E5'); 
+                        }
+                    }); 
+                    UI.elements.musicVolume.addEventListener('input', e => { GameState.state.settings.musicVolume = parseFloat(e.target.value); AudioManager.updateVolume(); }); 
+                    UI.elements.sfxVolume.addEventListener('input', e => { GameState.state.settings.sfxVolume = parseFloat(e.target.value); AudioManager.updateVolume(); }); 
+                    UI.elements.typingSpeed.addEventListener('input', e => { GameState.state.settings.typingSpeed = parseInt(e.target.value); }); 
+                    UI.elements.skipUnseenText.addEventListener('change', e => { GameState.state.settings.skipUnseenText = e.target.checked; }); 
+                    document.querySelector('[data-action="close-settings"]').addEventListener('click', () => GameState.saveSettings());
+                },
+                
+                handleAction(action, target) {
+                    try {
+                        const slotId = target.dataset.slotId ? parseInt(target.dataset.slotId) : null; 
+                        const actions = {
+                            'show-start-menu':()=>this.showStartMenu(),
+                            'new-game':()=>this.newGame(),
+                            'load-menu':()=>SaveLoad.showMenu('load'),
+                            'open-settings':()=>{UI.updateSettingsUI();UI.showModal('settings-menu');},
+                            'open-credits':()=>UI.showModal('credits-screen'),
+                            'back-to-start':()=>{ GameState.reset(); UI.showScreen('start-screen'); },
+                            'back-to-menu':()=> { UI.hideAllModals(); GameState.reset(); UI.showScreen('start-screen'); },
+                            'start-adventure':()=>this.startGame(),
+                            'toggle-pause':()=>this.togglePause(),
+                            'resume-game':()=>this.togglePause(),
+                            'open-save-menu':()=>SaveLoad.showMenu('save'),
+                            'open-load-menu':()=>SaveLoad.showMenu('load'),
+                            'open-achievements':()=>{UI.populateAchievementsMenu();UI.showModal('achievements-menu');},
+                            'restart-phase':()=>this.restartPhase(),
+                            'close-dialog-and-check-completion':()=>{UI.hideDialog();this.checkPhaseCompletion();},
+                            'close-settings':()=>UI.hideAllModals(),
+                            'close-save-load':()=>UI.hideAllModals(),
+                            'close-achievements':()=>UI.hideAllModals(),
+                            'close-credits':()=>UI.hideAllModals(),
+                            'confirm-yes':()=>{if(UI.elements.confirmYesBtn.callback)UI.elements.confirmYesBtn.callback();UI.hideAllModals();},
+                            'confirm-no':()=>UI.hideAllModals(),
+                            'process-node':()=>this.processNode(target.dataset.node),
+                            'handle-choice':()=>this.handleChoice(JSON.parse(target.dataset.choice)),
+                            'handle-slot-click':()=>{if(slotId!==null)SaveLoad.handleSlotClick(slotId);},
+                            'delete-save':()=> { if(slotId!==null) { const slotElement = target.closest('.save-slot'); SaveLoad.deleteSave(slotId, slotElement); } }
+                        };
+                        if(actions[action]){actions[action]();}
+                    } catch(error){console.error(`Error handling action ${action}:`, error)}
+                },
+            };
+            
+            const SaveLoad = {
+                prefix: 'iotGameSave_v15_', mode: 'load',
+                autoSave() { if (GameState.state.gameInitialized) try {localStorage.setItem('iotGameAutoSave', JSON.stringify(GameState.state));} catch(e){console.warn("Autosave failed.")} },
+                showMenu(mode) { this.mode = mode; UI.hideAllModals(); UI.elements.saveLoadTitle.textContent = mode === 'save' ? 'Salvar Jogo' : 'Carregar Jogo'; this.populateSlots(); UI.showModal('save-load-menu'); },
+                populateSlots() { const container = UI.elements.saveSlotsContainer; container.innerHTML = ''; for (let i = 0; i < 4; i++) { const slot = document.createElement('div'); slot.className = 'save-slot'; const data = this.getData(i); if (data) { const avatar = characters.player.avatars.find(a => a.id === data.avatarId) || characters.player.avatars[0]; const safeName = String(data.playerName || 'Jogador').replace(/[<>&"]/g, char => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[char])); slot.innerHTML = `<div class="slot-info"><img src="${avatar.image}" alt="Avatar do save" class="slot-avatar" onerror="this.src='https://placehold.co/40x40/0d0c1d/d8d8e8?text=X'"><div class="slot-text"><span class="slot-name">${safeName}</span><span class="slot-date">Fase ${(data.currentPhase || 0) + 1} | ${data.timestamp ? new Date(data.timestamp).toLocaleString('pt-BR') : 'sem data'}</span></div></div> <button type="button" class="slot-delete" data-action="delete-save" data-slot-id="${i}" aria-label="Excluir save do slot ${i + 1}"><i data-feather="trash-2"></i></button>`; } else slot.innerHTML = `<span class="empty">[ Slot ${i + 1} Vazio ]</span>`; slot.dataset.action = 'handle-slot-click'; slot.dataset.slotId = i; container.appendChild(slot); } if (typeof feather !== 'undefined') feather.replace();},
+                handleSlotClick(id) { if (this.mode === 'save') { UI.showConfirmDialog('Salvar Jogo', `Deseja sobrescrever o Slot ${id+1}?`, () => this.save(id)); } else { this.load(id); } },
+                save(id) { try { localStorage.setItem(`${this.prefix}${id}`, JSON.stringify({ ...GameState.state, timestamp: new Date().toISOString() })); AudioManager.play('success', 'A5'); this.populateSlots(); UI.hideAllModals();} catch(e){console.error("Save failed", e)}},
+                load(id) { const data = this.getData(id); if (data) { GameState.load(data); UI.hideAllModals(); GameLogic.continueGame(); } },
+                deleteSave(id, slotElement) { UI.showConfirmDialog('Deletar Save', `Tem certeza que deseja deletar o save no Slot ${id+1}?`, () => { try{ localStorage.removeItem(`${this.prefix}${id}`); AudioManager.play('fail'); this.populateSlots(); } catch(e){console.error("Delete failed", e)} }); },
+                getData(id) { try { const data = localStorage.getItem(`${this.prefix}${id}`); return data ? JSON.parse(data) : null; } catch(e){return null;} }
+            };
+
+            try {
+                GameLogic.init();
+            } catch (error) {
+                console.error("Ocorreu um erro fatal ao iniciar o jogo:", error);
+                document.body.innerHTML = `<div style="color:white; padding: 20px; text-align:center;"><h1>Erro Crítico</h1><p>O jogo não pôde ser iniciado. Verifique o console para mais detalhes.</p></div>`;
+            }
+        });
+    </script>
+    
+    <!-- Inicializador de Ícones -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof feather !== 'undefined') {
+                feather.replace();
+            }
+        });
+    </script>
+</body>
+</html>
+
